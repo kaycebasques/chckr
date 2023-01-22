@@ -7,6 +7,8 @@ def check_external_url(url):
   response = requests.get(url)
   return (response.status_code == requests.codes.ok)
 
+# TODO: The data should only get saved once for each
+# computed URL.
 def check_external_urls(base, hrefs):
   for href in hrefs:
     computed_url = hrefs[href]['computed']
@@ -31,12 +33,15 @@ def compute_urls(base, hrefs):
     hrefs[href]['computed'] = compute_url(base, href)
   return hrefs
 
+# TODO: The hrefs section should arguably just be the
+# href followed by the computed URL as a key-value
+# pair.
 def scrape(url):
   response = requests.get(url)
   soup = BeautifulSoup(response.content, 'html.parser')
   data = {'hrefs': {}, 'ids': []}
-  for node in soup.find_all('a'):
-    data['hrefs'][node.get('href')] = {'computed': None}
+  for node in soup.find_all('a', attrs={'href': True}):
+      data['hrefs'][node.get('href')] = {'computed': None, 'ok': None}
   for node in soup.find_all(attrs={'id': True}):
     data['ids'].append(node.get('id'))
   return data
@@ -49,6 +54,7 @@ def main():
     report['data'][target] = scrape(target)
     hrefs = report['data'][target]['hrefs']
     hrefs = compute_urls(base, hrefs)
+    hrefs = check_external_urls(base, hrefs)
   print(dumps(report, indent=2))
 
 if __name__ == '__main__':
